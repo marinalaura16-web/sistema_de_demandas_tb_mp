@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gerar chaves</title>
+  <style>
+    :root { color-scheme: light dark; --vinho: #6d0101; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px 16px; line-height: 1.5; background: Canvas; color: CanvasText; }
+    h1 { font-size: 22px; }
+    button { font: inherit; padding: 12px 18px; border: 0; border-radius: 10px; background: var(--vinho); color: #fff; font-weight: 600; cursor: pointer; }
+    label { display: block; font-weight: 600; margin-top: 18px; }
+    textarea { width: 100%; font: 13px ui-monospace, Menlo, monospace; padding: 10px; border-radius: 8px; box-sizing: border-box; }
+    .aviso { padding: 10px 12px; border-left: 4px solid var(--vinho); background: color-mix(in srgb, var(--vinho) 10%, Canvas); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>🔑 Gerar chaves de notificação</h1>
+  <p>Use esta página <b>uma única vez</b>, no computador, durante a configuração. As chaves são criadas aqui mesmo no navegador e não são enviadas para lugar nenhum.</p>
+  <button id="gerar">Gerar chaves</button>
+  <div id="saida" hidden>
+    <label>VAPID_PUBLIC_KEY (chave pública: vai no config.js <i>e</i> nos Secrets do Supabase)
+      <textarea id="pub" rows="3" readonly></textarea></label>
+    <label>VAPID_PRIVATE_KEY (chave privada: vai <u>somente</u> nos Secrets do Supabase)
+      <textarea id="priv" rows="2" readonly></textarea></label>
+    <p class="aviso">⚠️ Nunca coloque a chave <b>privada</b> no config.js nem no GitHub. Se gerar de novo, as chaves antigas deixam de valer e será preciso reativar as notificações nos celulares.</p>
+  </div>
+  <script>
+    const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    document.getElementById("gerar").onclick = async () => {
+      const par = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+      const pub = await crypto.subtle.exportKey("raw", par.publicKey);
+      const jwk = await crypto.subtle.exportKey("jwk", par.privateKey);
+      document.getElementById("pub").value = b64url(pub);
+      document.getElementById("priv").value = jwk.d;
+      document.getElementById("saida").hidden = false;
+    };
+  </script>
+</body>
+</html>
