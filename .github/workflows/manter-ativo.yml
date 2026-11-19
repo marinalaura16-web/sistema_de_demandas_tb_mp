@@ -1,0 +1,31 @@
+# Visita o banco do Supabase a cada 3 dias para o plano gratuito não pausar o projeto
+# (ele pausa após 7 dias sem uso). Usa só a chave pública que já está no app/config.js.
+# Se o projeto estiver pausado ou fora do ar, esta tarefa falha e o GitHub avisa por e-mail.
+name: Manter Supabase ativo
+
+on:
+  schedule:
+    - cron: "17 12 */3 * *" # a cada 3 dias, por volta das 9h no horário de Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visitar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Consultar o banco
+        run: |
+          URL=$(grep -o 'https://[a-z0-9]*\.supabase\.co' app/config.js)
+          CHAVE=$(grep -o 'eyJ[A-Za-z0-9._-]*' app/config.js)
+          STATUS=$(curl -s -o resposta.txt -w '%{http_code}' \
+            "$URL/rest/v1/perfis?select=id&limit=1" \
+            -H "apikey: $CHAVE" -H "Authorization: Bearer $CHAVE")
+          echo "Resposta do Supabase: HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            cat resposta.txt
+            echo "::error::O Supabase não respondeu. O projeto pode estar pausado: abra o painel e toque em Resume project."
+            exit 1
+          fi
